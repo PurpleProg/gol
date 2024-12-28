@@ -140,20 +140,25 @@ int update(bool** board)
 
 int count_neighbours(bool** board, int x, int y)
 {
-    if ( (x <= 0 || (x*TILE_SIZE) >= GFX_LCD_WIDTH) || (y <= 0 || (y*TILE_SIZE) >= GFX_LCD_HEIGHT))
-    {
-        return 0; // kill the cell if it get close to the wall
-    }
-
-
     int neighbours = 0;
+
+    int board_width = GFX_LCD_WIDTH / TILE_SIZE;
+    int board_height = GFX_LCD_HEIGHT / TILE_SIZE;
+
     for (int i = -1; i < 2; i++)
     {
         for (int j = -1; j < 2; j++)
         {
             if (i == 0 && j == 0) {continue;} // skip self
-            if (board[y + i][x + j]) {neighbours += 1;}
 
+            int neighbour_x = x + i;
+            int neighbour_y = y + j;
+
+            if (neighbour_x >= 0 && neighbour_x < board_width &&
+                neighbour_y >= 0 && neighbour_y < board_height)
+            {
+                if (board[neighbour_y][neighbour_x]) {neighbours += 1;}
+            }
         }
     }
     return neighbours ;
