@@ -154,24 +154,24 @@ int count_neighbours(bool** board, int x, int y)
 	/* Return the number of alive cells around a given cell (x and y) */
 	int neighbours = 0;
 
-	   int board_width = GFX_LCD_WIDTH / TILE_SIZE;
-	   int board_height = GFX_LCD_HEIGHT / TILE_SIZE;
+	int board_width = GFX_LCD_WIDTH / TILE_SIZE;
+	int board_height = GFX_LCD_HEIGHT / TILE_SIZE;
 
-	   for (int i = -1; i < 2; i++)
-	   {
-		   for (int j = -1; j < 2; j++)
-	   {
-		   if (i == 0 && j == 0) {continue;} // skip self
+	for (int i = -1; i < 2; i++)
+	{
+		for (int j = -1; j < 2; j++)
+		{
+			if (i == 0 && j == 0) {continue;} // skip self
 
-	   int neighbour_x = x + i;
-	   int neighbour_y = y + j;
+			int neighbour_x = x + i;
+			int neighbour_y = y + j;
 
-	   if (neighbour_x >= 0 && neighbour_x < board_width &&
-	   neighbour_y >= 0 && neighbour_y < board_height)
-	   {
-		   if (board[neighbour_y][neighbour_x]) {neighbours += 1;}
-	   }
-	   }
-	   }
-	   return neighbours;
+			if (neighbour_x >= 0 && neighbour_x < board_width &&
+				neighbour_y >= 0 && neighbour_y < board_height)
+			{
+				if (board[neighbour_y][neighbour_x]) {neighbours += 1;}
+			}
+		}
+	}
+	return neighbours;
 }
