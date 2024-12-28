@@ -3,10 +3,12 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define TILE_SIZE 8
 
-int render(bool (*board)[30][40]);
-int update(bool (*board)[30][40]);
-int count_neighbours(bool (*board)[30][40], int x, int y);
+
+int render(bool**);
+int update(bool**);
+int count_neighbours(bool**, int x, int y);
 
 
 int main(void)
@@ -17,34 +19,53 @@ int main(void)
     gfx_SetDrawBuffer();
     gfx_FillScreen(0);
 
+    // initialize a 2D array to store the game
+    int rows = GFX_LCD_HEIGHT / TILE_SIZE;
+    int columns = GFX_LCD_WIDTH / TILE_SIZE;
 
-    const int TILE_SIZE = 8;
-    bool board[30][40];
+    bool **board = (bool **)malloc(rows * sizeof(bool *));
+    for (int i = 0; i < rows; i++)
+    {
+        board[i] = (bool *)malloc(columns * sizeof(bool));
+        for (int j = 0; j < columns; j++)
+        {
+            board[i][j] = false;
+        }
+    }
 
-    // test fill
-    board[1][1] = true;
+    //    1 2 3
+    // 1    X
+    // 2      X
+    // 3  X X X
+
+    // test fill planer
+    board[3][1] = true;
+    board[3][2] = true;
+    board[3][3] = true;
+    board[2][3] = true;
     board[1][2] = true;
-    board[1][3] = true;
-    board[1][4] = true;
-    board[1][5] = true;
-    board[1][6] = true;
-    board[1][7] = true;
-
 
     do {
-        update(&board);
-        render(&board);
-        kb_Scan();
+        update(board);
+              render(board);
+              kb_Scan();
     } while (!(kb_Data[6] & kb_Clear));
 
 
+    for (int i = 0; i < rows; i++)
+    {
+        free(board[i]);
+    }
+    free(board);
+
     /* End graphics drawing */
     gfx_End();
+
     return 0;
 }
 
 
-int render(bool (*board)[30][40])
+int render(bool** board)
 {
     gfx_FillScreen(0);
     gfx_SetColor(255);
@@ -53,9 +74,9 @@ int render(bool (*board)[30][40])
     {
         for (int x = 0; x < 40; x++)
         {
-            if ((*board)[y][x])
+            if (board[y][x])
             {
-                gfx_FillRectangle_NoClip(x*8, y*8, 8, 8);
+                gfx_FillRectangle_NoClip(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
             }
         }
     }
@@ -63,30 +84,35 @@ int render(bool (*board)[30][40])
     return 0;
 }
 
-int update(bool (*board)[30][40])
+int update(bool** board)
 {
     // copying the board
-    bool new_board[30][40];
-    for (int y = 0; y < 30; y++)
+    int rows = GFX_LCD_HEIGHT / TILE_SIZE;
+    int columns = GFX_LCD_WIDTH / TILE_SIZE;
+
+    bool **new_board = (bool **)malloc(rows * sizeof(bool *));
+    for (int i = 0; i < rows; i++)
     {
-        for (int x = 0; x < 40; x++)
+        new_board[i] = (bool *)malloc(columns * sizeof(bool));
+        for (int j = 0; j < columns; j++)
         {
-            new_board[y][x] = (*board)[y][x];
+            new_board[i][j] = false;
         }
     }
+
     // apply rule for each cell
-    for (int y = 0; y < 30; y++)
+    for (int y = 0; y < rows; y++)
     {
-        for (int x = 0; x < 40; x++)
+        for (int x = 0; x < columns; x++)
         {
             int neighbours = count_neighbours(board, x, y);
 
             // rules
-            if ((*board)[y][x])
+            if (board[y][x])
             {
                 if (neighbours < 2) {new_board[y][x] = false;}
-                if (neighbours == 2 || neighbours == 3) {new_board[y][x] = true;}
-                if (neighbours > 3) {new_board[y][x] = false;}
+                      if (neighbours == 2 || neighbours == 3) {new_board[y][x] = true;}
+                      if (neighbours > 3) {new_board[y][x] = false;}
 
             }
             else
@@ -98,27 +124,35 @@ int update(bool (*board)[30][40])
     }
 
     // copying back the board
-    for (int y = 0; y < 30; y++)
-    {
-        for (int x = 0; x < 40; x++)
-        {
-            (*board)[y][x] = new_board[y][x];
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < columns; j++) {
+            board[i][j] = new_board[i][j];
         }
     }
+    for (int i = 0; i < rows; i++) {
+        free(new_board[i]);
+    }
+    free(new_board);
 
     return 0;
 }
 
 
-int count_neighbours(bool (*board)[30][40], int x, int y)
+int count_neighbours(bool** board, int x, int y)
 {
+    if ( (x <= 0 || (x*TILE_SIZE) >= GFX_LCD_WIDTH) || (y <= 0 || (y*TILE_SIZE) >= GFX_LCD_HEIGHT))
+    {
+        return 0; // kill the cell if it get close to the wall
+    }
+
+
     int neighbours = 0;
     for (int i = -1; i < 2; i++)
     {
         for (int j = -1; j < 2; j++)
         {
             if (i == 0 && j == 0) {continue;} // skip self
-            if ((*board)[y + i][x + j]) {neighbours += 1;}
+            if (board[y + i][x + j]) {neighbours += 1;}
 
         }
     }
