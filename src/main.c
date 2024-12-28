@@ -3,11 +3,19 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+
 #define TILE_SIZE 8
 
 
-int render(bool**);
-int update(bool**);
+typedef struct cursor_t {
+		int x;
+		int y;
+
+	} cursor_t;
+
+
+int render(bool**, cursor_t*, bool*);
+int update(bool**, cursor_t*, bool*);
 int count_neighbours(bool**, int x, int y);
 
 
@@ -33,12 +41,14 @@ int main(void)
 		}
 	}
 
+
+	// test fill planer
+
 	//    1 2 3
 	// 1    X
 	// 2      X
 	// 3  X X X
 
-	// test fill planer
 	board[3][1] = true;
 	board[3][2] = true;
 	board[3][3] = true;
@@ -46,14 +56,22 @@ int main(void)
 	board[1][2] = true;
 
 
-	bool paused = false;
+	bool *paused = (bool *)malloc(sizeof(bool));
+	*paused = false;
 
+	// allocate a cursor
+	cursor_t *cursor = malloc(sizeof(cursor_t));
+	cursor->x = 0;
+	cursor->y = 0;
 
-	do {
-		if (!paused) {update(board);}
-		render(board);
+	while (!(kb_Data[6] & kb_Clear))
+	{
 		kb_Scan();
-	} while (!(kb_Data[6] & kb_Clear));
+
+		update(board, cursor, paused);
+		render(board, cursor, paused);
+
+	};
 
 
 	for (int i = 0; i < rows; i++)
@@ -69,11 +87,12 @@ int main(void)
 }
 
 
-int render(bool** board)
+int render(bool** board, cursor_t* cursor, bool* paused)
 {
 	/* render the game board (just white and black squares) */
 	gfx_FillScreen(0);
-	gfx_SetColor(255);
+
+	gfx_SetColor(255); // white
 
 	int rows = GFX_LCD_HEIGHT / TILE_SIZE;
 	int columns = GFX_LCD_WIDTH / TILE_SIZE;
@@ -81,71 +100,113 @@ int render(bool** board)
 	for (int y = 0; y < rows; y++)
 	{
 		for (int x = 0; x < columns; x++)
+		{
+			if (board[y][x])
 			{
-				if (board[y][x])
-				{
-					gfx_FillRectangle_NoClip(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
-				}
+				gfx_FillRectangle_NoClip(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE);
 			}
+		}
 	}
+
+	// render the cursor on top of the cells
+	if (*paused) {
+		gfx_SetColor(224); // red
+		gfx_Rectangle_NoClip(cursor->x * TILE_SIZE, cursor->y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+	}
+
 	gfx_BlitBuffer();
 	return 0;
 }
 
 
-int update(bool** board)
+int update(bool** board, cursor_t* cursor, bool* paused)
 {
-	/* update the game following the wikipedia rules */
+	/* update the game following the wikipedia rules and move the cursor*/
 
-	   // copying the board
+	// update pause
+	if (kb_Data[1] & kb_2nd) {
+		*paused = !(*paused);
+	}
+
+
+	if (*paused) {
+		// update a cell only on pause
+		if (kb_Data[6] & kb_Enter) {
+			board[cursor->y][cursor->x] = !(board[cursor->y][cursor->x]);
+		}
+
+		// move cursor
+		switch (kb_Data[7]) {
+			case (kb_Right):
+				cursor->x += 1;
+				break;
+			case (kb_Left):
+				cursor->x -= 1;
+				break;
+			case (kb_Down):
+				cursor->y += 1;
+				break;
+			case (kb_Up):
+				cursor->y -= 1;
+				break;
+		}
+
+		// skips board update if paused
+		return 0;
+	}
+
+
+	// copying the board
 	int rows = GFX_LCD_HEIGHT / TILE_SIZE;
-	   int columns = GFX_LCD_WIDTH / TILE_SIZE;
+	int columns = GFX_LCD_WIDTH / TILE_SIZE;
 
-	   bool **new_board = (bool **)malloc(rows * sizeof(bool *));
-	   for (int i = 0; i < rows; i++)
-	   {
-		   new_board[i] = (bool *)malloc(columns * sizeof(bool));
-	   for (int j = 0; j < columns; j++)
-	   {
-		   new_board[i][j] = false;
-	   }
-	   }
+	// allocate a new board
+	bool **new_board = (bool **)malloc(rows * sizeof(bool *));
+	for (int i = 0; i < rows; i++)
+	{
+		new_board[i] = (bool *)malloc(columns * sizeof(bool));
+		for (int j = 0; j < columns; j++)
+		{
+			new_board[i][j] = false;
+		}
+	}
 
-	   // apply rule for each cell
-	   for (int y = 0; y < rows; y++)
-	   {
-		   for (int x = 0; x < columns; x++)
-	   {
-		   int neighbours = count_neighbours(board, x, y);
+	// apply rule for each cell
+	for (int y = 0; y < rows; y++)
+	{
+		for (int x = 0; x < columns; x++)
+		{
+			int neighbours = count_neighbours(board, x, y);
 
-	   // rules
-	   if (board[y][x])
-	   {
-		   if (neighbours < 2) {new_board[y][x] = false;}
-	   if (neighbours == 2 || neighbours == 3) {new_board[y][x] = true;}
-	   if (neighbours > 3) {new_board[y][x] = false;}
+			// rules
+			if (board[y][x])
+			{
+				if (neighbours < 2) {new_board[y][x] = false;}
+				if (neighbours == 2 || neighbours == 3) {new_board[y][x] = true;}
+				if (neighbours > 3) {new_board[y][x] = false;}
 
-	   }
-	   else
-	   {
-		   if (neighbours == 3) {new_board[y][x] = true;}
-	   }
+			}
+			else
+			{
+				if (neighbours == 3) {new_board[y][x] = true;}
+			}
 
-	   }
-	   }
+		}
+	}
 
-	   // copying back the board
-	   for (int i = 0; i < rows; i++) {
-		   for (int j = 0; j < columns; j++) {
-		   board[i][j] = new_board[i][j];
-	   }
-	   }
-	   for (int i = 0; i < rows; i++) {
-		   free(new_board[i]);
-	   }
-	   free(new_board);
+	// copying back the board
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < columns; j++) {
+			board[i][j] = new_board[i][j];
+		}
+	}
+	// free the temp board
+	for (int i = 0; i < rows; i++) {
+		free(new_board[i]);
+	}
+	free(new_board);
 
-	   return 0;
+	return 0;
 }
 
 
