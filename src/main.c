@@ -166,6 +166,9 @@ int update(bool** board, cursor_t* cursor, bool* paused)
 	 *update kb_data and pause/resume.
 	 */
 
+	int rows = GFX_LCD_HEIGHT / TILE_SIZE;
+	int columns = GFX_LCD_WIDTH / TILE_SIZE;
+
 	kb_key_t old_kb_arrows = kb_Data[7];
 	kb_key_t old_kb_1 = kb_Data[1]; // for 2nd (also suppr)
 	kb_key_t old_kb_6 = kb_Data[6]; // for enter
@@ -185,13 +188,13 @@ int update(bool** board, cursor_t* cursor, bool* paused)
 		}
 
 		// move cursor
-		if ((kb_Data[7] & kb_Right) && !(old_kb_arrows & kb_Right )) {
+		if ((kb_Data[7] & kb_Right) && !(old_kb_arrows & kb_Right) && (cursor->x < (columns-1) ) ) {
 			cursor->x += 1;
-		} else if ((kb_Data[7] & kb_Left) && !(old_kb_arrows & kb_Left )) {
+		} else if ((kb_Data[7] & kb_Left) && !(old_kb_arrows & kb_Left) && (cursor->x > 0)) {
 			cursor->x -= 1;
-		} else if ((kb_Data[7] & kb_Up) && !(old_kb_arrows & kb_Up )) {
+		} else if ((kb_Data[7] & kb_Up) && !(old_kb_arrows & kb_Up) && (cursor->y > 0)) {
 			cursor->y -= 1;
-		} else if ((kb_Data[7] & kb_Down) && !(old_kb_arrows & kb_Down )) {
+		} else if ((kb_Data[7] & kb_Down) && !(old_kb_arrows & kb_Down) && (cursor->y < (rows-1) ) ) {
 			cursor->y += 1;
 		}
 
@@ -201,8 +204,6 @@ int update(bool** board, cursor_t* cursor, bool* paused)
 
 
 	// creating a new temporary board
-	int rows = GFX_LCD_HEIGHT / TILE_SIZE;
-	int columns = GFX_LCD_WIDTH / TILE_SIZE;
 
 	// allocate the new board
 	bool **new_board = (bool **)malloc(rows * sizeof(bool *));
