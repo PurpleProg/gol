@@ -2,6 +2,7 @@
 #include <keypadc.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 
 #define TILE_SIZE 8
@@ -64,18 +65,13 @@ int main(void)
 	cursor->x = 0;
 	cursor->y = 0;
 
-	while (!(kb_Data[6] & kb_Clear))
-	{
-		kb_Scan();
-
+	while (!(kb_Data[6] & kb_Clear)) {
 		update(board, cursor, paused);
 		render(board, cursor, paused);
-
 	};
 
 
-	for (int i = 0; i < rows; i++)
-	{
+	for (int i = 0; i < rows; i++) {
 		free(board[i]);
 	}
 	free(board);
@@ -121,34 +117,38 @@ int render(bool** board, cursor_t* cursor, bool* paused)
 
 int update(bool** board, cursor_t* cursor, bool* paused)
 {
-	/* update the game following the wikipedia rules and move the cursor*/
+	/*
+	 *update the cells following the wikipedia rules, move the cursor,
+	 *update kb_data and pause/resume.
+	 */
+
+	kb_key_t old_kb_arrows = kb_Data[7];
+	kb_key_t old_kb_1 = kb_Data[1]; // for 2nd (also suppr)
+	kb_key_t old_kb_6 = kb_Data[6]; // for enter
+
+	kb_Scan();
 
 	// update pause
-	if (kb_Data[1] & kb_2nd) {
+	if ((kb_Data[1] & kb_2nd) && !(old_kb_1 & kb_2nd)) {
 		*paused = !(*paused);
 	}
 
 
 	if (*paused) {
 		// update a cell only on pause
-		if (kb_Data[6] & kb_Enter) {
+		if ((kb_Data[6] & kb_Enter) && !(old_kb_6 & kb_Enter)) {
 			board[cursor->y][cursor->x] = !(board[cursor->y][cursor->x]);
 		}
 
 		// move cursor
-		switch (kb_Data[7]) {
-			case (kb_Right):
-				cursor->x += 1;
-				break;
-			case (kb_Left):
-				cursor->x -= 1;
-				break;
-			case (kb_Down):
-				cursor->y += 1;
-				break;
-			case (kb_Up):
-				cursor->y -= 1;
-				break;
+		if ((kb_Data[7] & kb_Right) && !(old_kb_arrows & kb_Right )) {
+			cursor->x += 1;
+		} else if ((kb_Data[7] & kb_Left) && !(old_kb_arrows & kb_Left )) {
+			cursor->x -= 1;
+		} else if ((kb_Data[7] & kb_Up) && !(old_kb_arrows & kb_Up )) {
+			cursor->y -= 1;
+		} else if ((kb_Data[7] & kb_Down) && !(old_kb_arrows & kb_Down )) {
+			cursor->y += 1;
 		}
 
 		// skips board update if paused
@@ -156,14 +156,13 @@ int update(bool** board, cursor_t* cursor, bool* paused)
 	}
 
 
-	// copying the board
+	// creating a new temporary board
 	int rows = GFX_LCD_HEIGHT / TILE_SIZE;
 	int columns = GFX_LCD_WIDTH / TILE_SIZE;
 
-	// allocate a new board
+	// allocate the new board
 	bool **new_board = (bool **)malloc(rows * sizeof(bool *));
-	for (int i = 0; i < rows; i++)
-	{
+	for (int i = 0; i < rows; i++) {
 		new_board[i] = (bool *)malloc(columns * sizeof(bool));
 		for (int j = 0; j < columns; j++)
 		{
@@ -172,8 +171,8 @@ int update(bool** board, cursor_t* cursor, bool* paused)
 	}
 
 	// apply rule for each cell
-	for (int y = 0; y < rows; y++)
-	{
+	for (int y = 0; y < rows; y++) {
+
 		for (int x = 0; x < columns; x++)
 		{
 			int neighbours = count_neighbours(board, x, y);
@@ -194,12 +193,13 @@ int update(bool** board, cursor_t* cursor, bool* paused)
 		}
 	}
 
-	// copying back the board
+	// copying back the temp board into the "real" one
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < columns; j++) {
 			board[i][j] = new_board[i][j];
 		}
 	}
+
 	// free the temp board
 	for (int i = 0; i < rows; i++) {
 		free(new_board[i]);
