@@ -1,9 +1,12 @@
-Simple Game of Life in C.
+## Simple Game of Life in C.
 
 
-keybinds : 
+# keybinds : 
 
 2nd     ->  pause/resume
+
 enter   ->  kill/alive cell
+
 arrows  ->  move cursors
+
 annul   ->  exit game
